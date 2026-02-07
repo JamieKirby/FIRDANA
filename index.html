@@ -9,286 +9,519 @@
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; padding: 0; background-color: #0d1524; color: #e8e4d8; font-family: 'Cormorant Garamond', serif; -webkit-font-smoothing: antialiased; width: 100%; overflow-x: hidden; scroll-behavior: smooth; }
-
-        /* LAYER 1: THE ATMOSPHERE */
+        
         #particleCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; }
 
-        /* LAYER 2: THE REVEAL FOOTER */
-        .reveal-footer { 
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 400px; 
-            background-color: #fcfaf5; color: #1a1a1a; 
-            z-index: 2; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 0; 
-            transition: opacity 1s ease-in-out;
-            pointer-events: none;
+        .global-noise {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 2; opacity: 0.05;
+            background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            display: none; 
         }
-        .reveal-footer.is-visible { opacity: 1; pointer-events: all; }
 
-        /* LAYER 3: MAIN CONTENT */
-        main { position: relative; z-index: 10; margin-bottom: 400px; }
-
-        /* NAV - DESKTOP DEFAULT */
         nav { 
             position: fixed; top: 0; left: 0; width: 100%;
             display: flex; justify-content: space-between; align-items: center; 
             padding: 20px 6vw; z-index: 1000;
             background-color: rgba(13, 21, 36, 0.85); backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(163, 137, 93, 0.15);
+            border-bottom: 1px solid rgba(163, 137, 93, 0.05);
         }
-        .logo-mark { font-family: 'Cinzel'; font-weight: 700; color: #e8e4d8; text-decoration: none; letter-spacing: 0.4em; font-size: 1.8rem; }
+        .logo-mark { font-family: 'Cinzel'; font-weight: 700; color: #e8e4d8; text-decoration: none; letter-spacing: 0.22em; font-size: 1.8rem; z-index: 1001; position: relative; }
         .accent { color: #a3895d; }
         
-        .nav-links-container { display: flex; align-items: center; }
-        .nav-link { text-decoration: none; color: rgba(232, 228, 216, 0.5); font-family: 'Inter', sans-serif; font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; transition: 0.3s; margin-right: 30px;}
+        .nav-links { display: flex; gap: 30px; }
+        .nav-link { 
+            text-decoration: none; color: rgba(232,228,216,0.6); 
+            font-family: 'Inter'; font-size: 0.7rem; letter-spacing: 0.2em; 
+            text-transform: uppercase; transition: 0.3s; cursor: pointer;
+        }
         .nav-link:hover { color: #a3895d; }
-        .cta-button { border: 1px solid #a3895d; padding: 12px 24px; color: #0d1524; background: #a3895d; font-family: 'Cinzel'; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; text-decoration: none; transition: 0.3s; cursor: pointer; }
-
-        /* HAMBURGER (Strictly Controlled Z-Index) */
-        .menu-toggle { 
-            display: none; flex-direction: column; gap: 6px; 
-            background: none; border: none; cursor: pointer; 
-            padding: 10px; z-index: 2500; /* Higher than everything */
-        }
-        .bar { width: 25px; height: 1px; background: #a3895d; transition: 0.4s; }
-
-        /* MOBILE DRAWER */
-        .mobile-drawer {
-            display: none; position: fixed; top: 0; right: -100%; width: 100%; height: 100vh;
-            background: #0d1524; z-index: 2000; 
-            flex-direction: column; align-items: center; justify-content: center; gap: 40px; 
-            transition: 0.5s cubic-bezier(0.77, 0, 0.175, 1);
-        }
-        .mobile-drawer.active { right: 0; display: flex; }
-
-        /* SECTION STYLES - DESKTOP */
-        .hero-view { height: 100vh; display: flex; flex-direction: column; padding: 120px 6vw 0 6vw; background: transparent; }
-        .hero-center { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         
-        .manifesto-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid rgba(163, 137, 93, 0.2); width: 100%; background: rgba(13, 21, 36, 0.4); backdrop-filter: blur(5px); }
-        .pillar { padding: 60px 20px; text-align: center; border-right: 1px solid rgba(163, 137, 93, 0.1); cursor: pointer; transition: 0.4s; }
-        .pillar:hover { background: rgba(163, 137, 93, 0.08); }
-        .pillar-blurb { max-height: 0; overflow: hidden; opacity: 0; transition: all 0.5s ease; font-size: 0.95rem; color: rgba(232, 228, 216, 0.6); line-height: 1.6; }
-        .pillar:hover .pillar-blurb { max-height: 100px; opacity: 1; margin-top: 20px; }
+        /* AUDIO CONTAINER (MOVED TO RIGHT + SPEAKER ICON) */
+        .audio-container {
+            position: absolute; top: 100px; right: 6vw; /* MOVED RIGHT */
+            z-index: 500; display: flex; align-items: center; gap: 12px;
+        }
+        .speaker-shape {
+            width: 14px; height: 14px; background: #a3895d;
+            clip-path: polygon(0% 30%, 40% 30%, 100% 0%, 100% 100%, 40% 70%, 0% 70%);
+            opacity: 0.6;
+        }
+        .equalizer {
+            display: flex; gap: 3px; cursor: pointer; height: 20px; align-items: flex-end;
+            padding: 5px; opacity: 0.6; transition: 0.3s;
+        }
+        .equalizer:hover { opacity: 1; }
+        .bar { width: 3px; background-color: #a3895d; height: 30%; transition: height 0.2s ease; }
+        
+        .audio-active .bar { animation: equalizerBounce 1s infinite ease-in-out; }
+        .audio-active .bar:nth-child(1) { animation-delay: 0.0s; }
+        .audio-active .bar:nth-child(2) { animation-delay: 0.2s; }
+        .audio-active .bar:nth-child(3) { animation-delay: 0.4s; }
+        .audio-active .bar:nth-child(4) { animation-delay: 0.1s; }
+        @keyframes equalizerBounce { 0%, 100% { height: 20%; } 50% { height: 100%; } }
 
-        .obsidian-slide { background-color: #161a1d; min-height: 100vh; padding: 150px 6vw; z-index: 20; box-shadow: 0 0 60px rgba(0,0,0,1); position: relative; }
-        .obsidian-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:100px; align-items:center; }
-        .navy-slide { background-color: transparent; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 15; padding: 100px 6vw; text-align: center; }
-        .shutter-slide { background-color: #1a1d1f; min-height: 100vh; padding: 100px 6vw; z-index: 25; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,1); display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .final-mask { background-color: #2c2e30; min-height: 60vh; z-index: 30; position: relative; display: flex; justify-content: center; align-items: center; box-shadow: 0 30px 60px rgba(0,0,0,1); }
+        .burger-menu { display: none; cursor: pointer; z-index: 1001; font-size: 1.5rem; color: #a3895d; user-select: none; }
+        
+        .mobile-nav-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background-color: rgba(13, 21, 36, 0.98); backdrop-filter: blur(15px);
+            z-index: 1000; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; gap: 40px;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+        }
+        .mobile-nav-overlay.active { opacity: 1; pointer-events: all; }
+        .mobile-link { font-family: 'Playfair Display'; font-size: 2rem; color: #e8e4d8; text-decoration: none; transition: 0.3s; }
 
-        .service-point { margin-bottom: 60px; max-width: 700px; }
-        .service-point h4 { font-family: 'Cinzel'; color: #a3895d; font-size: 1.1rem; letter-spacing: 0.3em; margin-bottom: 10px; }
-        .service-point p { font-size: 1.4rem; opacity: 0.8; line-height: 1.6; }
+        @keyframes expandTracking {
+            0% { letter-spacing: -0.15em; opacity: 0; filter: blur(10px); }
+            20% { opacity: 1; }
+            100% { letter-spacing: 0.1em; opacity: 1; filter: blur(0px); }
+        }
 
-        /* --- MOBILE MEDIA QUERIES --- */
+        @keyframes expandDate {
+            0% { letter-spacing: 0em; opacity: 0; }
+            100% { letter-spacing: 0.4em; opacity: 1; }
+        }
+
+        .glow-title { 
+            white-space: nowrap; font-family: 'Playfair Display'; 
+            font-size: clamp(2rem, 11vw, 8.5rem); 
+            margin: 0; opacity: 0; 
+            animation: expandTracking 6s cubic-bezier(0.1, 1, 0.2, 1) 0s forwards;
+            z-index: 100; position: relative; text-align: center; user-select: none; 
+        }
+        .glow-title span { display: inline-block; transition: 0.3s ease; position: relative; cursor: crosshair; padding: 0 10px; }
+        .glow-title span:hover, .glow-title span.active-letter { color: #fff; text-shadow: 0 0 30px #a3895d; transform: translateY(-5px); }
+
+        .hero-date-container { display: flex; align-items: center; justify-content: center; width: clamp(250px, 85vw, 1200px); margin-top: 25px; gap: 15px; z-index: 10; }
+        
+        /* 2X THICKER TAPERED LINES */
+        .date-line { flex-grow: 1; height: 2px; background: linear-gradient(90deg, transparent, #a3895d, transparent); opacity: 0.5; }
+        
+        #yearDisplay { 
+            cursor: pointer; text-align: center; white-space: nowrap; 
+            font-family: 'Cinzel'; color: #a3895d; font-size: 1.2rem; min-width: 150px;
+            font-weight: 700; /* EMBOLDENED */
+            opacity: 0;
+            animation: expandDate 7s cubic-bezier(0.1, 1, 0.2, 1) 0.5s forwards;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.4s ease;
+        }
+        #yearDisplay.decoded, #yearDisplay:hover { 
+            color: #e8e4d8; 
+            transform: scale(1.3); 
+        }
+
+        .hero-view { height: 100vh; display: flex; flex-direction: column; justify-content: space-between; padding: 120px 6vw 0 6vw; }
+        .hero-center { display: flex; flex-direction: column; align-items: center; }
+
+        .manifesto-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); 
+            width: 100%; background: transparent; 
+            border-top: 1px solid rgba(163, 137, 93, 0.1); 
+            z-index: 100; position: relative; 
+        }
+        .pillar { padding: 50px 20px; text-align: center; cursor: pointer; transition: 0.4s ease; position: relative; }
+        .pillar:not(:last-child)::after {
+            content: ''; position: absolute; right: 0; top: 30%; height: 40%; width: 1px;
+            background: rgba(163, 137, 93, 0.1);
+        }
+        .pillar span.accent { display: block; font-size: 0.8rem; margin-bottom: 15px; opacity: 0.6; }
+        .pillar-title { font-family: 'Cinzel'; letter-spacing: 0.25em; font-size: 1rem; color: #e8e4d8; }
+        .pillar-blurb { 
+            max-height: 0; opacity: 0; transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
+            font-size: 0.75rem; color: #a3895d; 
+            overflow: hidden; font-family: 'Inter'; text-transform: uppercase; letter-spacing: 0.2em; 
+        }
+        .pillar:hover .pillar-blurb, .pillar.mobile-active .pillar-blurb { max-height: 50px; opacity: 1; margin-top: 15px; }
+
+        main { position: relative; z-index: 10; margin-bottom: 400px; }
+
+        .obsidian-slide { 
+            background-color: #161a1d; min-height: 100vh; padding: 120px 8vw; 
+            position: relative; display: flex; align-items: center; overflow: hidden;
+            box-shadow: 0 -100px 100px rgba(0,0,0,0.8), 0 100px 100px rgba(0,0,0,0.8); 
+            border-top: 1px solid rgba(255,255,255,0.05); z-index: 20; 
+        }
+        .obsidian-slide::before {
+            content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            opacity: 0.05; pointer-events: none; z-index: 0;
+        }
+
+        .navy-slide { 
+            background-color: transparent; min-height: 80vh; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; position: relative; z-index: 10; 
+            text-align: center; padding: 80px 10vw; box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+        }
+        
+        .ogham-chain { 
+            position: absolute; font-family: serif; font-size: 5.5rem; 
+            color: rgba(255, 255, 255, 0.04); z-index: 1; pointer-events: none; 
+            writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -0.2em; 
+        }
+
+        .content-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.2fr; gap: 80px; align-items: center; position: relative; z-index: 5; }
+        .text-block h2 { font-family: 'Playfair Display'; font-size: 4rem; margin: 0 0 20px 0; line-height: 1.1; cursor: default; min-height: 4.4rem; }
+        .text-block h3 { font-family: 'Cinzel'; color: #a3895d; letter-spacing: 0.3em; font-size: 1rem; margin-bottom: 40px; }
+        .text-block p { font-size: 1.3rem; line-height: 1.8; opacity: 0.8; margin-bottom: 30px; }
+        .list-item { border-left: 2px solid #a3895d; padding-left: 25px; margin-bottom: 30px; text-align: left; }
+        .list-item strong { display: block; font-family: 'Cinzel'; font-size: 0.9rem; letter-spacing: 0.1em; color: #a3895d; margin-bottom: 8px; }
+
+        .reveal-footer { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 400px; 
+            background-color: #fcfaf5; color: #1a1a1a; z-index: 1; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            opacity: 0; pointer-events: none; padding: 60px 10vw; text-align: center; 
+        }
+        .footer-info { font-family: 'Inter'; letter-spacing: 0.2em; font-size: 0.8rem; margin-bottom: 20px; }
+        .footer-line { width: 60px; height: 1px; background-color: #a3895d; margin: 0 auto 20px auto; }
+        .footer-date { font-family: 'Cinzel'; letter-spacing: 0.4em; font-size: 1.2rem; }
+
+        .decode-char { display: inline-block; transition: filter 0.6s ease, opacity 0.6s ease; }
+        .is-blurring { filter: blur(6px); opacity: 0.3; }
+
         @media (max-width: 1024px) {
-            .nav-links-container { display: none; }
-            .menu-toggle { display: flex; }
-            nav { padding: 15px 5vw; }
-            .logo-mark { font-size: 1.4rem; }
-            .mobile-drawer { display: flex; }
-            .drawer-link { font-family: 'Cinzel'; font-size: 1.5rem; color: #e8e4d8; text-decoration: none; letter-spacing: 0.2em; }
-
-            .hero-view { padding-top: 100px; height: auto; min-height: 100vh; }
-            .manifesto-grid { grid-template-columns: 1fr; margin-top: 40px; }
-            .pillar { border-right: none; border-bottom: 1px solid rgba(163, 137, 93, 0.1); padding: 40px 20px; }
-            .pillar-blurb { max-height: 100px; opacity: 1; margin-top: 10px; font-size: 0.85rem; }
-
-            .obsidian-slide { padding: 80px 6vw; }
-            .obsidian-grid { grid-template-columns: 1fr; gap: 40px; }
+            .nav-links { display: none; }
+            .burger-menu { display: block; }
+            .global-noise { display: block; }
+            .obsidian-slide::before { display: none; }
+            .hero-view { display: block; height: auto; min-height: 100vh; padding: 0; }
+            .hero-center { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; padding-bottom: 20vh; }
             
-            h1 { font-size: clamp(3rem, 12vw, 5rem) !important; }
-            h2 { font-size: 2.5rem !important; }
-            .service-point p { font-size: 1.1rem; }
-            .shutter-slide p { font-size: 1.2rem !important; }
+            .glow-title { 
+                font-size: 12vw; letter-spacing: 0.02em; 
+                animation: expandTracking 2s cubic-bezier(0.1, 1, 0.2, 1) 0s forwards;
+            }
+            .glow-title span { padding: 0 1px; }
+
+            #yearDisplay {
+                animation: expandDate 2.5s cubic-bezier(0.1, 1, 0.2, 1) 0.2s forwards;
+            }
+
+            .audio-container { top: 90px; right: 20px; left: auto; } 
+            .manifesto-grid { grid-template-columns: 1fr; border-top: 1px solid rgba(163, 137, 93, 0.1); }
+            .pillar { border: none; border-bottom: 1px solid rgba(163, 137, 93, 0.05); padding: 40px 20px; }
+            .pillar::after { display: none; } 
+            .text-block h2 { font-size: 2.5rem; }
+            .ogham-chain { display: none; }
         }
     </style>
 </head>
-<body onclick="initiateRipple(event)">
+<body onmousedown="interact(event)">
 
     <canvas id="particleCanvas"></canvas>
-
-    <div class="mobile-drawer" id="mobileDrawer">
-        <a href="#expeditions" class="drawer-link" onclick="toggleMenu()">Expeditions</a>
-        <a href="#scriptorium" class="drawer-link" onclick="toggleMenu()">Scriptorium</a>
-        <a href="#" class="drawer-link" style="color:#a3895d;">Initiate</a>
-    </div>
+    <div class="global-noise"></div>
 
     <nav>
-        <a href="#" class="logo-mark">FIR-D<span class="accent">Á</span>NA</a>
-        
-        <div class="nav-links-container">
-            <a href="#expeditions" class="nav-link">Expeditions</a>
-            <a href="#scriptorium" class="nav-link">Scriptorium</a>
-            <a href="#" class="cta-button">INITIATE</a>
+        <a href="#" class="logo-mark" onmouseenter="playCrack()">FIR-D<span class="accent">Á</span>NA</a>
+        <div class="nav-links">
+            <a class="nav-link" onclick="document.getElementById('expeditions').scrollIntoView()">Expeditions</a>
+            <a class="nav-link" onclick="document.getElementById('ceremonies').scrollIntoView()">Ceremonies</a>
+            <a class="nav-link" onclick="document.getElementById('tours').scrollIntoView()">Tours</a>
+            <a class="nav-link" onclick="document.getElementById('manifesto').scrollIntoView()">Manifesto</a>
         </div>
-
-        <button class="menu-toggle" onclick="toggleMenu()" aria-label="Toggle Menu">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </button>
+        <div class="burger-menu" onclick="toggleMobileNav()">☰</div>
     </nav>
+
+    <div class="audio-container">
+        <div class="speaker-shape"></div>
+        <div class="equalizer" onclick="toggleAudio()" id="audioEq" title="Initialize Audio">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-overlay" id="mobileNav">
+        <a class="mobile-link" onclick="toggleMobileNav(); document.getElementById('expeditions').scrollIntoView()">Expeditions</a>
+        <a class="mobile-link" onclick="toggleMobileNav(); document.getElementById('ceremonies').scrollIntoView()">Ceremonies</a>
+        <a class="mobile-link" onclick="toggleMobileNav(); document.getElementById('tours').scrollIntoView()">Tours</a>
+        <a class="mobile-link" onclick="toggleMobileNav(); document.getElementById('manifesto').scrollIntoView()">Manifesto</a>
+        <div style="margin-top: 40px; font-family: 'Cinzel'; color: #a3895d; cursor: pointer;" onclick="toggleMobileNav()">✕ CLOSE</div>
+    </div>
 
     <main>
         <section class="hero-view">
-            <div class="hero-center">
-                <h1 style="font-family:'Playfair Display'; font-size:clamp(3.5rem, 10vw, 8.5rem); margin:0; letter-spacing:0.1em;">FIR-D<span class="accent">Á</span>NA</h1>
-                <div style="display:flex; align-items:center; gap:20px; margin-top:25px; font-family:'Cinzel'; font-size:0.75rem; letter-spacing:0.5em; color:#a3895d;">
-                    <div style="width:60px; height:1px; background:#a3895d; opacity:0.4;"></div> EST MCMXCV <div style="width:60px; height:1px; background:#a3895d; opacity:0.4;"></div>
+            <div class="desktop-spacer"></div>
+            <div class="hero-center" id="heroTarget">
+                <h1 class="glow-title decode-text" id="titleRoot" data-text="FIR-DÁNA" data-speed="40"></h1>
+                <div class="hero-date-container" id="dateWrapper">
+                    <div class="date-line"></div>
+                    <div id="yearDisplay">EST MCMXCV</div>
+                    <div class="date-line"></div>
                 </div>
             </div>
+            
             <div class="manifesto-grid">
-                <div class="pillar" onclick="document.getElementById('expeditions').scrollIntoView()">
-                    <span class="roman-num" style="font-family:'Cinzel'; color:#a3895d; margin-right:10px;">I</span><span class="pillar-title" style="font-size:1.2rem; letter-spacing:0.1em;">Architecture</span>
-                    <div class="pillar-blurb">Deciphering theological intent within the Atlantic fringe.</div>
+                <div class="pillar" onclick="this.classList.toggle('mobile-active'); vibrate(15)" onmouseenter="playCrack()">
+                    <span class="accent">I</span>
+                    <div class="pillar-title">EXPEDITIONS</div>
+                    <div class="pillar-blurb">Analysis in Situ</div>
                 </div>
-                <div class="pillar" onclick="document.getElementById('philosophy').scrollIntoView()">
-                    <span class="roman-num" style="font-family:'Cinzel'; color:#a3895d; margin-right:10px;">II</span><span class="pillar-title" style="font-size:1.2rem; letter-spacing:0.1em;">Continuity</span>
-                    <div class="pillar-blurb">A bridge between the ancient record and modern practice.</div>
+                <div class="pillar" onclick="this.classList.toggle('mobile-active'); vibrate(15)" onmouseenter="playCrack()">
+                    <span class="accent">II</span>
+                    <div class="pillar-title">CEREMONIES</div>
+                    <div class="pillar-blurb">Constructed Rites</div>
                 </div>
-                <div class="pillar" onclick="document.getElementById('scriptorium').scrollIntoView()">
-                    <span class="roman-num" style="font-family:'Cinzel'; color:#a3895d; margin-right:10px;">III</span><span class="pillar-title" style="font-size:1.2rem; letter-spacing:0.1em;">Discipline</span>
-                    <div class="pillar-blurb">Formal scholarly initiation into the craft.</div>
+                <div class="pillar" onclick="this.classList.toggle('mobile-active'); vibrate(15)" onmouseenter="playCrack()">
+                    <span class="accent">III</span>
+                    <div class="pillar-title">TOURS</div>
+                    <div class="pillar-blurb">Scholarly Deep Dives</div>
                 </div>
             </div>
         </section>
 
         <section id="expeditions" class="obsidian-slide">
-            <div class="obsidian-grid">
-                <div style="width:100%; aspect-ratio:4/5; background:#000; background-image:url('https://images.unsplash.com/photo-1590424744295-9cd1b7829078?q=80&w=1000&auto=format&fit=crop'); background-size:cover; filter: grayscale(1) contrast(1.1); border: 1px solid rgba(163, 137, 93, 0.15);"></div>
-                <div>
-                    <h2 style="font-family:'Playfair Display'; font-size:3.5rem; margin-bottom:20px;">The Monoliths</h2>
-                    <p style="font-size:1.3rem; line-height:1.7; opacity:0.8;">Tracing the geometry of forgotten structures across the western edge of the world.</p>
+            <div class="ogham-chain" style="left: 4vw; top: -10%;" data-speed="0.4">ᚁᚂᚚᚄᚔᚋᚅᚆ</div>
+            <div class="ogham-chain" style="right: 4vw; bottom: -20%;" data-speed="-0.4">ᚁᚂᚚᚄᚔᚋᚅᚆ</div>
+            <div class="content-grid">
+                <div style="aspect-ratio:4/5; background:url('https://images.unsplash.com/photo-1590424744295-9cd1b7829078?auto=format&fit=crop&q=80&w=800') center/cover; filter: grayscale(1); border: 1px solid rgba(163, 137, 93, 0.2);"></div>
+                <div class="text-block">
+                    <h3>The Geometry of Silence</h3>
+                    <h2 class="decode-text" data-text="Expeditions" data-speed="40"></h2>
+                    <p>On-site analysis of megalithic structures across the Atlantic fringe. We build meaning through discipline and record.</p>
+                    <div class="list-item"><strong>Auraicept Investigations</strong>Tracing Ogham inscriptions from stone to scriptorium.</div>
+                    <div class="list-item"><strong>Structural Theology</strong>How stone anchors the metaphysical.</div>
                 </div>
             </div>
         </section>
 
-        <section id="philosophy" class="navy-slide">
-            <div class="service-point">
-                <h4>Substance over Sage</h4>
-                <p>No crystals, no clichés, no forced "spiritualism."</p>
-            </div>
-            <div class="service-point">
-                <h4>The Spoken Word</h4>
-                <p>A ceremony crafted with the precision of a scholar and the wit of the Irish tradition.</p>
-            </div>
-            <div class="service-point">
-                <h4>Structural Integrity</h4>
-                <p>A service designed to last as long as the stones I study.</p>
+        <section id="ceremonies" class="navy-slide">
+            <h3 style="color:#a3895d; letter-spacing: 0.4em; margin-bottom: 20px;">ANCHORING THE METAPHYSICAL</h3>
+            <h2 class="decode-text" data-text="Monolithic Rites" data-speed="40" style="font-family:'Playfair Display'; font-size: 4.5rem; margin-bottom: 40px;"></h2>
+            <div style="max-width: 800px; margin: 0 auto;">
+                <p style="margin-bottom: 60px;">Weddings and transitions built with scholarly precision.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                    <div class="list-item"><strong>Lineage Restoration</strong>Anchoring modern life into the ancient record.</div>
+                    <div class="list-item"><strong>The Spoken Word</strong>Precision-crafted scripts favoring historical weight.</div>
+                </div>
             </div>
         </section>
 
-        <section id="scriptorium" class="shutter-slide">
-            <div style="max-width: 800px; text-align: center;">
-                <h3 style="font-family: 'Cinzel'; letter-spacing: 0.5em; color: #a3895d; margin-bottom: 40px; font-size: 0.9rem;">THE ARCHIVE</h3>
-                <p style="font-family: 'Playfair Display'; font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.4; color: #e8e4d8; font-style: italic;">
-                    <span style="font-size: 1.5em; color: #a3895d; font-family: 'Cinzel'; float: left; line-height: 0.8; margin-right: 15px; margin-top: 10px;">I</span>n the "Land of Saints and Scholars," the <span class="accent">Fir-Dána</span> were the <span style="color: #a3895d;">Aes Dána</span>—the people of skill. 
-                </p>
-                <p style="font-size: 1.4rem; line-height: 1.8; color: rgba(232, 228, 216, 0.8); margin-top: 30px;">
-                    They were the architects of tradition: the lawyers, the poets, and the historians who ensured that the great moments of life were anchored in something deeper than the individual. They didn't "facilitate" feelings; <strong style="color: #e8e4d8;">they constructed meaning.</strong>
-                </p>
+        <section id="tours" class="obsidian-slide">
+            <div class="ogham-chain" style="left: 4vw; bottom: -20%;" data-speed="-0.6">ᚁᚂᚚᚄᚔᚋᚅᚆ</div>
+            <div class="ogham-chain" style="right: 4vw; top: -10%;" data-speed="0.6">ᚁᚂᚚᚄᚔᚋᚅᚆ</div>
+            <div class="content-grid">
+                <div class="text-block">
+                    <h3>The Scholar's Path</h3>
+                    <h2 class="decode-text" data-text="Tours" data-speed="40"></h2>
+                    <div class="list-item"><strong>Megalithic Masterclasses</strong>Engineering and intent of western monuments.</div>
+                    <div class="list-item"><strong>Stone & Stave</strong>Field sessions on Ogham decipherment and structural history.</div>
+                </div>
+                <div style="aspect-ratio:4/5; background:url('https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&q=80&w=800') center/cover; filter: grayscale(1); border: 1px solid rgba(163, 137, 93, 0.2);"></div>
             </div>
         </section>
 
-        <section class="final-mask">
-            <h3 style="font-family:'Cinzel'; letter-spacing:0.5em; color:#a3895d; font-size:0.8rem;">AUTHENTICITY IN PRACTICE</h3>
+        <section id="manifesto" class="navy-slide">
+            <h3 style="color:#a3895d; letter-spacing: 0.4em;">THE RULES OF ENGAGEMENT</h3>
+            <h2 class="decode-text" data-text="The Ancient Electric" data-speed="40" style="font-family:'Playfair Display'; font-size: 4.5rem; margin-bottom: 60px;"></h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; width: 100%; max-width: 1200px;">
+                <div class="list-item"><strong>Meaning is Constructed</strong>We build through record.</div>
+                <div class="list-item"><strong>Structural Integrity</strong>If it lacks scrutiny, it has no place.</div>
+                <div class="list-item"><strong>No Forced Sage</strong>History and law as the foundation.</div>
+                <div class="list-item"><strong>The Western Edge</strong>Meeting of land and deep water.</div>
+            </div>
+        </section>
+
+        <section class="obsidian-slide">
+            <div style="width:100%; max-width: 900px; margin: 0 auto; text-align: center; position: relative; z-index: 5;">
+                <h3 style="font-family:'Cinzel'; letter-spacing:0.5em; color: #a3895d; margin-bottom: 40px;">THE DECLARATION OF PRACTICE</h3>
+                <p style="font-size: 1.6rem; line-height: 1.8; font-style: italic; color: #e8e4d8;">
+                    "We are Architects of Tradition, not facilitators of feelings. Our practice is built on Granite and Logic. We prioritize Substance over Sage."
+                </p>
+            </div>
         </section>
     </main>
 
     <footer class="reveal-footer" id="main-footer">
-        <div style="font-size:2.5rem; letter-spacing:0.6em; margin-bottom:20px;">|| ╳ ≡ |</div>
-        <p style="font-family:'Inter'; font-size:0.7rem; letter-spacing:0.5em; opacity:0.6;">AD MMXXVI — FIR-DÁNA SCHOLARLY PRACTICE</p>
+        <div class="footer-info">INFO@FIR-DANA.COM | +353 1 555 0122</div>
+        <div class="footer-line"></div>
+        <div class="footer-date">AD MMXXVI</div>
     </footer>
 
     <script>
-        // MOBILE MENU LOGIC
-        function toggleMenu() {
-            const drawer = document.getElementById('mobileDrawer');
-            const bars = document.querySelectorAll('.bar');
-            drawer.classList.toggle('active');
-            
-            if(drawer.classList.contains('active')) {
-                bars[0].style.transform = "rotate(45deg) translate(5px, 5px)";
-                bars[1].style.opacity = "0";
-                bars[2].style.transform = "rotate(-45deg) translate(7px, -7px)";
-            } else {
-                bars[0].style.transform = "none"; 
-                bars[1].style.opacity = "1"; 
-                bars[2].style.transform = "none";
-            }
-        }
-
-        // PARTICLE PHYSICS (Your Original Desktop Code)
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
-        const footer = document.getElementById('main-footer');
-        let particles = [];
-        let mouse = { x: -2000, y: -2000 };
+        const runes = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛈᛇᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ'; 
+        const oghamMap = { 1: "ᚁ", 2: "ᚂ", 3: "ᚚ", 4: "ᚄ", 5: "ᚔ", 6: "ᚋ", 7: "ᚅ", 8: "ᚆ" };
+        let particles = [], mouse = { x: -2000, y: -2000 }, activeGhost = 0, ghostOpacity = 0;
+        let lastMoveTime = Date.now(), particleMode = "repel";
 
-        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        /* --- DECODER --- */
+        function setupDecoder(el) {
+            const originalText = el.dataset.text;
+            let speed = parseInt(el.dataset.speed) || 40;
+            const isHero = el.id === 'titleRoot';
+            
+            if (window.innerWidth < 1024) { speed = 15; }
 
-        window.addEventListener('scroll', () => {
-            const scrolled = window.scrollY;
-            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            if (scrolled > docHeight - 450) { footer.classList.add('is-visible'); } 
-            else { footer.classList.remove('is-visible'); }
-        });
+            el.innerHTML = '';
+            originalText.split('').forEach((char, i) => {
+                const span = document.createElement('span');
+                span.className = 'decode-char';
+                if (isHero) span.dataset.og = i + 1; 
+                span.innerText = runes[Math.floor(Math.random() * runes.length)];
+                el.appendChild(span);
+            });
 
-        function initiateRipple(e) {
-            if (e.target.closest('nav') || e.target.closest('.pillar') || e.target.closest('.mobile-drawer')) return;
+            const resolve = () => {
+                const spans = el.querySelectorAll('.decode-char');
+                spans.forEach((span, i) => {
+                    setTimeout(() => {
+                        span.classList.add('is-blurring');
+                        setTimeout(() => {
+                            span.innerText = originalText[i];
+                            span.classList.remove('is-blurring');
+                            if (i === spans.length - 1) vibrate(10);
+                        }, 100); 
+                    }, i * speed);
+                });
+            };
+
+            if (isHero) { setTimeout(resolve, 800); } 
+            else {
+                const observer = new IntersectionObserver((entries) => {
+                    if (entries[0].isIntersecting) { resolve(); observer.disconnect(); }
+                }, { threshold: 0.5 });
+                observer.observe(el);
+            }
+        }
+        document.querySelectorAll('.decode-text').forEach(setupDecoder);
+
+        /* --- AUDIO --- */
+        let audioCtx, droneOsc, droneGain, isAudioInit = false;
+        function toggleAudio() {
+            const eq = document.getElementById('audioEq');
+            if (!isAudioInit) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                droneOsc = audioCtx.createOscillator();
+                droneGain = audioCtx.createGain();
+                droneOsc.frequency.value = 55; droneOsc.type = 'sine';
+                droneGain.gain.value = 0.05;
+                droneOsc.connect(droneGain); droneGain.connect(audioCtx.destination);
+                droneOsc.start();
+                eq.classList.add('audio-active');
+                isAudioInit = true;
+            } else {
+                if(audioCtx.state === 'running') { audioCtx.suspend(); eq.classList.remove('audio-active'); } 
+                else { audioCtx.resume(); eq.classList.add('audio-active'); }
+            }
+        }
+
+        function playCrack() {
+            if (!isAudioInit || audioCtx.state !== 'running') return;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.frequency.value = 120; osc.type = 'triangle';
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+        function interact(e) { 
+            const cx = e.clientX || (e.touches && e.touches[0].clientX);
+            const cy = e.clientY || (e.touches && e.touches[0].clientY);
             particles.forEach(p => {
-                let dx = p.x - e.clientX; let dy = p.y - e.clientY;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 400) {
-                    let force = (400 - dist) / 6;
-                    p.vx += (dx / dist) * force; p.vy += (dy / dist) * force;
-                    p.glow = 1.0;
+                const dx = p.x - cx;
+                const dy = p.y - cy;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                if (d < 400) {
+                    const force = (400 - d) / 10;
+                    const angle = Math.atan2(dy, dx);
+                    p.vx += Math.cos(angle) * force;
+                    p.vy += Math.sin(angle) * force;
                 }
             });
+            vibrate(5); 
         }
 
+        function toggleMobileNav() { document.getElementById('mobileNav').classList.toggle('active'); }
+
+        /* --- PARTICLE ENGINE --- */
         class Particle {
-            constructor() {
-                this.originX = Math.random() * canvas.width;
-                this.originY = Math.random() * canvas.height;
+            constructor() { 
+                this.originX = Math.random() * canvas.width; this.originY = Math.random() * canvas.height;
                 this.x = this.originX; this.y = this.originY;
-                this.size = Math.random() < 0.12 ? Math.random() * 2.8 + 1.2 : Math.random() * 0.9 + 0.3;
                 this.vx = 0; this.vy = 0; this.glow = 0;
-                this.baseOpacity = Math.random() * 0.4 + 0.1;
-                this.drift = Math.random() * 0.25 + 0.05;
+                this.drift = Math.random() * 0.3 + 0.05;
+                this.baseOpacity = Math.random() * 0.3 + 0.2; 
+                const isDesktop = window.innerWidth > 1024;
+                const baseSize = Math.random() < 0.1 ? Math.random() * 3 + 1 : Math.random() * 0.8 + 0.4;
+                this.size = isDesktop ? baseSize * 2 : baseSize;
+                this.angle = Math.random() * Math.PI * 2;
             }
             update() {
-                this.originX -= this.drift;
-                if (this.originX < -50) this.originX = canvas.width + 50;
-                let dx = mouse.x - this.x; let dy = mouse.y - this.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 130) { this.vx -= dx * 0.006; this.vy -= dy * 0.006; this.glow = 0.4; }
-                this.vx += (this.originX - this.x) * 0.012;
-                this.vy += (this.originY - this.y) * 0.012;
-                this.vx *= 0.92; this.vy *= 0.92;
-                this.x += this.vx; this.y += this.vy;
+                this.originX -= this.drift; if (this.originX < -50) this.originX = canvas.width + 50;
+                let dx = mouse.x - this.x, dy = mouse.y - this.y, d = Math.sqrt(dx*dx + dy*dy);
+                if (particleMode === "repel" && d < 150) { this.vx -= dx * 0.015; this.vy -= dy * 0.015; this.glow = 0.5; }
+                else if (particleMode === "orbit" && d < 500) {
+                    this.angle += 0.02;
+                    let tx = mouse.x + Math.cos(this.angle) * (d * 0.95);
+                    let ty = mouse.y + Math.sin(this.angle) * (d * 0.95);
+                    this.vx += (tx - this.x) * 0.005; this.vy += (ty - this.y) * 0.005;
+                }
+                this.vx += (this.originX - this.x) * 0.02; this.vy += (this.originY - this.y) * 0.02;
+                this.vx *= 0.9; this.vy *= 0.9; this.x += this.vx; this.y += this.vy;
                 this.glow = Math.max(0, this.glow - 0.01);
             }
-            draw() {
-                ctx.fillStyle = `rgba(163, 137, 93, ${this.baseOpacity + (this.glow * 0.5)})`;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-            }
+            draw() { ctx.fillStyle = `rgba(163, 137, 93, ${this.baseOpacity + this.glow})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
         }
 
-        function setup() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            const count = window.innerWidth < 768 ? 800 : 2800;
-            particles = Array.from({length: count}, () => new Particle());
-        }
-
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; lastMoveTime = Date.now(); });
         function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const idle = Date.now() - lastMoveTime;
+            particleMode = idle > 2000 ? "orbit" : (idle > 800 ? "idle" : "repel");
+
+            if (activeGhost > 0) {
+                ghostOpacity = Math.min(ghostOpacity + 0.05, 0.12);
+                ctx.save(); ctx.font = "400 70vw serif"; ctx.fillStyle = `rgba(163, 137, 93, ${ghostOpacity})`;
+                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillText(oghamMap[activeGhost], canvas.width/2, (canvas.height/2)); 
+                ctx.restore();
+            } else { ghostOpacity = Math.max(0, ghostOpacity - 0.05); }
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(loop);
         }
 
-        setup(); loop();
+        setTimeout(() => {
+            document.querySelectorAll('#titleRoot span').forEach(el => {
+                el.addEventListener('mouseenter', () => { if(window.innerWidth > 1024) activeGhost = parseInt(el.dataset.og); });
+                el.addEventListener('mouseleave', () => { if(window.innerWidth > 1024) activeGhost = 0; });
+            });
+        }, 2000);
+
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const dist = document.documentElement.scrollHeight - window.innerHeight - scrolled;
+            document.getElementById('main-footer').style.opacity = Math.max(0, Math.min(1, 1 - (dist / 400)));
+            document.querySelectorAll('.ogham-chain').forEach(og => {
+                const speed = parseFloat(og.dataset.speed) || 0.4;
+                og.style.transform = `translateY(${(scrolled - og.closest('section').offsetTop) * speed}px)`;
+            });
+        }, {passive: true});
+        
+        let yearElement = document.getElementById('yearDisplay'), tally;
+        const triggerTally = () => {
+            yearElement.classList.add('decoded');
+            let s = performance.now();
+            function up(t) {
+                const p = Math.min((t-s)/1000, 1);
+                yearElement.innerText = p < 0.2 ? "XCVIM190".split('').sort(()=>.5-Math.random()).join('') : "EST " + Math.floor(1000 + 995 * (1 - Math.pow(1-p, 4)));
+                if (p < 1) tally = requestAnimationFrame(up);
+            }
+            cancelAnimationFrame(tally); tally = requestAnimationFrame(up);
+        }
+        document.getElementById('dateWrapper').addEventListener('mouseenter', triggerTally);
+        document.getElementById('dateWrapper').addEventListener('mouseleave', () => { cancelAnimationFrame(tally); yearElement.classList.remove('decoded'); yearElement.innerText = "EST MCMXCV"; });
+
+        function setup() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; particles = Array.from({length: 1000}, () => new Particle()); }
         window.addEventListener('resize', setup);
+        setup(); loop();
     </script>
 </body>
 </html>
